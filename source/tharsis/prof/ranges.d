@@ -520,7 +520,7 @@ unittest
     // Sort top-level zones by duration. If there is one top-level zone per frame, this
     // sorts frames by duration: useful to get the worst-case frames.
 
-    // This example also uses C malloc/free, std.typecons.scoped and std.container.Array
+    // This example also uses C malloc/free and std.typecons.scoped 
     // to show how to do this without using the GC.
 
     import tharsis.prof;
@@ -558,6 +558,24 @@ unittest
     // nestLevel of 1 is toplevel.
     auto topLevel = zones.filter!(z => z.nestLevel == 1);
 
+    const size_t topLevelLength = zones.walkLength;
+    //TODO replace with std.allocator, or better, new containers once added to Phobos
+    ZoneData[] topLevelArray = (cast(ZoneData*)malloc(topLevelLength * ZoneData.sizeof))[0 .. topLevelLength];
+    scope(exit) { free(topLevelArray.ptr); }
+
+    topLevel.copy(topLevelArray);
+    topLevelArray.sort!((a, b) => a.duration > b.duration);
+    import std.stdio;
+    // Print the 4 longest frames.
+    foreach(frame; topLevelArray[0 .. 4])
+    {
+        writeln(frame);
+    }
+
+    auto worst = topLevelArray[0];
+
+    /* Code based on std.container.array.Array: broken due to DMD 2.068 changes.
+     * Getting obsolete anyway, as containers are finally being redesigned by Andrei Alexandrescu.
     import std.container;
     // std.container.Array constructor builds an RAII array containing zones from topLevel.
     // We need an array as we need random access to sort the zones (ZoneRange generates
@@ -573,6 +591,7 @@ unittest
     }
 
     auto worst = topLevelArray[0];
+    */
 
     // Print details about all zones in the worst frame.
     writeln("Zones in the worst frame:");
@@ -718,6 +737,7 @@ private:
         {
             assert(count <= 8, "Time byte count can't be more than 8 bytes");
 
+            import std.typetuple;
             // This unrolls the loop at compile-time (for performance).
             foreach(b; TypeTuple!(0, 1, 2, 3, 4, 5, 6, 7, 8, 9))
             {

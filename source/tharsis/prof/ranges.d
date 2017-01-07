@@ -711,7 +711,7 @@ private:
      *
      * Called from constructor and popFront() to update front_.
      */
-    void readEvent()
+    void readEvent() @trusted
     {
         // Store on the stack for fast access.
         const(ubyte)[] profileData = profileData_;
